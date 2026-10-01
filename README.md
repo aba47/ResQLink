@@ -1,4 +1,26 @@
-# DisasterReady (ResQLink)
+# 🚨 DisasterReady (ResQLink)
+
+[![Download Android APK](https://img.shields.io/badge/⬇%20Download%20Android%20APK-Latest%20Release-2ea44f?style=for-the-badge&logo=android&logoColor=white)](https://github.com/aba47/ResQLink/releases/latest/download/app-debug.apk)
+[![GitHub Releases](https://img.shields.io/badge/📦%20GitHub%20Releases-Browse%20All-24292e?style=for-the-badge&logo=github&logoColor=white)](https://github.com/aba47/ResQLink/releases)
+[![Build and Release APK](https://github.com/aba47/ResQLink/actions/workflows/release_apk.yml/badge.svg)](https://github.com/aba47/ResQLink/actions/workflows/release_apk.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-36%2F36%20Passing-brightgreen?style=for-the-badge)](https://github.com/aba47/ResQLink)
+
+---
+
+### 📥 Direct APK Download
+
+| Option | Link | Description |
+| :--- | :--- | :--- |
+| **Direct APK** | [**⬇️ Download `app-debug.apk`**](https://github.com/aba47/ResQLink/releases/latest/download/app-debug.apk) | Direct download link for the latest compiled Android APK |
+| **All Releases** | [**📦 Browse GitHub Releases**](https://github.com/aba47/ResQLink/releases) | View release notes, changelogs, and previous versions |
+
+#### 📲 How to Install on Android
+1. Download **`app-debug.apk`** from the button above on your Android phone or copy it from your PC.
+2. Tap the downloaded `.apk` file in your Android notifications or file manager.
+3. If prompted with *"Install unknown apps"*, tap **Settings** and enable **"Allow from this source"**.
+4. Tap **Install** and open **DisasterReady**!
+
+---
 
 Offline-First Natural Disaster Emergency Assistance and Coordination Android Application.
 
@@ -89,5 +111,5 @@ d:\APP\ResQLink\
 | Static Analysis | `flutter analyze` | **PASS (0 issues)** |
 | Flutter Test Suite | `flutter test` | **PASS (36/36 tests)** |
 | Python Backend Test | `python backend/test_backend.py` | **PASS (4/4 tests)** |
-| APK Build | `flutter build apk --debug` | **BLOCKED (No Android SDK installed)** |
+| APK Build | `flutter build apk --debug` | **PASS (`app-debug.apk` built)** |
 | Physical Bluetooth Test | 2 Physical Android Phones | **NOT TESTED (Requires 2 physical devices)** |

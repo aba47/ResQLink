@@ -10,14 +10,13 @@ This document provides instructions for setting up the Android SDK toolchain and
 | :--- | :--- |
 | `flutter analyze` | **PASS (0 issues)** |
 | `flutter test` | **PASS (36/36 tests)** |
-| `flutter build apk --debug` | **BLOCKED / NOT TESTED** (`[!] No Android SDK found. Try setting the ANDROID_HOME environment variable.`) |
+| `flutter build apk --debug` | **PASS** (`build\app\outputs\flutter-apk\app-debug.apk`) |
 
 The host development machine has:
 - Flutter 3.47.5 (Dart 3.13.4) installed at `D:\flutter`.
 - Java 25.0.2 installed at `C:\Program Files\Java\jdk-25` (`JAVA_HOME` set).
-- Git 2.55 installed.
-- Android platform files (`AndroidManifest.xml`, Gradle wrapper, `MainActivity.kt`) are completely generated and validated.
-- **Blocker**: The machine does not have the Android SDK Command-Line Tools or Android Studio installed.
+- Android SDK (API 34, 35, 36) & Android NDK (28.2.13676358) configured.
+- Android APK compiled successfully without warnings.
 
 ---
 
