@@ -46,8 +46,24 @@ app.*.map.json
 /android/local.properties
 /android/.gradle/
 /android/build/
-**/__pycache__/
+# Database & Cache
+__pycache__/
 *.db
+*.db-journal
+*.db-wal
+backend/storage/uploads/
+
+# Environment and Secret Files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+secrets.*
+credentials.json
+service_account.json
 
 # Widget Preview related
 .widget_preview/

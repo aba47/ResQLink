@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../constants/app_constants.dart';
@@ -22,6 +23,15 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
+    if (kIsWeb) {
+      return await openDatabase(
+        filePath,
+        version: AppConstants.dbVersion,
+        onCreate: DatabaseMigrations.onCreate,
+        onUpgrade: DatabaseMigrations.onUpgrade,
+      );
+    }
+
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
@@ -46,8 +56,12 @@ class DatabaseHelper {
       await _database!.close();
       _database = null;
     }
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, AppConstants.dbName);
-    await deleteDatabase(path);
+    if (kIsWeb) {
+      await deleteDatabase(AppConstants.dbName);
+    } else {
+      final dbPath = await getDatabasesPath();
+      final path = join(dbPath, AppConstants.dbName);
+      await deleteDatabase(path);
+    }
   }
 }

@@ -146,7 +146,7 @@ class _DisasterReportsScreenState extends State<DisasterReportsScreen> {
     );
   }
 
-  void _showCreateReportSheet(BuildContext context) {
+  void _showCreateReportSheet(BuildContext context) async {
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     final locController = TextEditingController();
@@ -159,7 +159,7 @@ class _DisasterReportsScreenState extends State<DisasterReportsScreen> {
     String disasterType = 'flood';
     String severity = 'HIGH';
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -281,5 +281,11 @@ class _DisasterReportsScreenState extends State<DisasterReportsScreen> {
         );
       },
     );
+
+    titleController.dispose();
+    locController.dispose();
+    descController.dispose();
+    casualtiesController.dispose();
+    injuredController.dispose();
   }
 }

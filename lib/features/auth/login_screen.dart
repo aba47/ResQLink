@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
-import '../../../core/utils/date_formatter.dart';
-import '../../../data/local/dao/user_dao.dart';
-import '../../../data/local/models/user_model.dart';
+import 'package:provider/provider.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,44 +12,59 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  bool _isSignInMode = false;
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _loginIdController = TextEditingController();
+
   String _selectedRole = 'citizen';
-  bool _isLoading = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _loginIdController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+    final authRepo = context.read<AuthRepository>();
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
-      final now = DateUtilsHelper.nowUtcIso();
-      final user = UserModel(
-        id: const Uuid().v4(),
-        name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        role: _selectedRole,
-        status: 'active',
-        createdAt: now,
-        updatedAt: now,
-      );
-
-      final userDao = UserDao();
-      await userDao.insert(user);
+      if (_isSignInMode) {
+        await authRepo.login(
+          phoneOrEmail: _loginIdController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      } else {
+        await authRepo.register(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
 
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving profile: $e')),
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red[800],
+          content: Text('${_isSignInMode ? "Sign In" : "Registration"} failed: $e'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -60,22 +73,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleQuickEmergencyAccess() async {
     setState(() => _isLoading = true);
-    final now = DateUtilsHelper.nowUtcIso();
-    final user = UserModel(
-      id: const Uuid().v4(),
-      name: 'Emergency Guest',
-      phone: 'N/A',
-      role: 'citizen',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-    );
+    final authRepo = context.read<AuthRepository>();
 
-    final userDao = UserDao();
-    await userDao.insert(user);
-
-    if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+    try {
+      await authRepo.emergencyGuestAccess();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Emergency entry error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -84,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DisasterReady Profile'),
+        title: Text(_isSignInMode ? 'Sign In to DisasterReady' : 'DisasterReady Registration'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -109,75 +120,149 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Emergency Responder / Citizen Setup',
+                const SizedBox(height: 16),
+                Text(
+                  _isSignInMode ? 'Welcome Back' : 'Disaster Relief Account Setup',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Your profile is stored locally and will be attached to emergency requests.',
+                Text(
+                  _isSignInMode
+                      ? 'Sign in to access your synchronized requests and offline relief tools.'
+                      : 'Create your secure account. Works both online and offline.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name *',
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number *',
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Please enter phone number for emergency contact';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    prefixIcon: Icon(Icons.badge),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'citizen', child: Text('Citizen / Survivor')),
-                    DropdownMenuItem(value: 'responder', child: Text('Emergency Responder / NDRF')),
-                    DropdownMenuItem(value: 'admin', child: Text('Camp / Relief Admin')),
+                const SizedBox(height: 24),
+
+                // Toggle between Sign In and Register
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Register'), icon: Icon(Icons.person_add)),
+                    ButtonSegment(value: true, label: Text('Sign In'), icon: Icon(Icons.login)),
                   ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedRole = val);
+                  selected: {_isSignInMode},
+                  onSelectionChanged: (selected) {
+                    setState(() {
+                      _isSignInMode = selected.first;
+                      _formKey.currentState?.reset();
+                    });
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                if (_isSignInMode) ...[
+                  // Sign In Fields
+                  TextFormField(
+                    controller: _loginIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number or Email *',
+                      prefixIcon: Icon(Icons.contact_mail),
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter your phone or email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  // Register Fields
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name *',
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter your full name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number *',
+                      prefixIcon: Icon(Icons.phone),
+                      hintText: '+1234567890',
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter your phone number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email Address (Optional)',
+                      prefixIcon: Icon(Icons.email),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedRole,
+                    decoration: const InputDecoration(
+                      labelText: 'Role',
+                      prefixIcon: Icon(Icons.badge),
+                      helperText: 'Admin accounts require central coordinator authorization',
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'citizen', child: Text('Citizen / Survivor')),
+                      DropdownMenuItem(value: 'responder', child: Text('Emergency Responder (Field)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedRole = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Password Field (common to both Sign In and Register)
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password *',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    if (!_isSignInMode && val.length < 8) {
+                      return 'Password must be at least 8 characters long';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 28),
+
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
+                  onPressed: _isLoading ? null : _handleSubmit,
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('Save & Enter App'),
+                      : Text(_isSignInMode ? 'Sign In & Enter' : 'Register & Enter'),
                 ),
                 const SizedBox(height: 16),
+
                 OutlinedButton.icon(
                   onPressed: _isLoading ? null : _handleQuickEmergencyAccess,
                   icon: const Icon(Icons.flash_on, color: Colors.red),

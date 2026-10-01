@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/database/database_helper.dart';
-import '../../../data/local/dao/user_dao.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -26,10 +27,11 @@ class _SplashScreenState extends State<SplashScreen> {
       await DatabaseHelper.instance.database;
 
       await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
 
       setState(() => _statusMessage = 'Checking user session...');
-      final userDao = UserDao();
-      final user = await userDao.getActiveUser();
+      final authRepo = context.read<AuthRepository>();
+      final user = await authRepo.restoreSession();
 
       if (!mounted) return;
 

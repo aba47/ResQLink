@@ -59,17 +59,24 @@ class _SyncCenterScreenState extends State<SyncCenterScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              controller.dispose();
+              Navigator.pop(ctx);
+            },
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              syncRepo.apiClient.baseUrl = controller.text.trim();
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Updated backend API URL to: ${syncRepo.apiClient.baseUrl}')),
-              );
-              setState(() {});
+            onPressed: () async {
+              final newUrl = controller.text.trim();
+              await syncRepo.updateBaseUrl(newUrl);
+              controller.dispose();
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Updated backend API URL to: $newUrl')),
+                );
+                setState(() {});
+              }
             },
             child: const Text('Save & Apply'),
           ),

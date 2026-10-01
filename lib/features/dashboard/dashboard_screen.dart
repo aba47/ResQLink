@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../data/local/dao/user_dao.dart';
 import '../../../data/local/models/user_model.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../offline_mode/widgets/offline_banner.dart';
 import '../../../shared/widgets/emergency_card.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -27,8 +28,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadUser() async {
     try {
-      final userDao = UserDao();
-      final user = await userDao.getActiveUser();
+      final authRepo = context.read<AuthRepository>();
+      final user = authRepo.currentUser ?? await UserDao().getActiveUser();
       if (mounted) {
         setState(() {
           _currentUser = user;
@@ -40,10 +41,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text(
+          'Are you sure you want to sign out? Your queued emergency requests will remain safely stored locally.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final authRepo = context.read<AuthRepository>();
+      await authRepo.logout();
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final connectivity = context.watch<ConnectivityService>();
+    final authRepo = context.watch<AuthRepository>();
+    if (authRepo.currentUser != null && _currentUser?.id != authRepo.currentUser?.id) {
+      _currentUser = authRepo.currentUser;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -71,6 +107,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               );
             },
+          ),
+          IconButton(
+            tooltip: 'Sign Out / Switch Account',
+            icon: const Icon(Icons.logout),
+            onPressed: () => _confirmLogout(context),
           ),
         ],
       ),
